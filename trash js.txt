@@ -1,0 +1,287 @@
+index main
+//const express = require("express");
+//import Fastify from "fastify";
+const Fastify = require("fastify");
+const fastifyCors = require("fastify-cors");
+const http = require("http");
+const cors = require("cors");
+const { initDB } = require("./db");
+const ToDo = require("./db/models/ToDo.model");
+const { where } = require("sequelize");
+const { truncate } = require("./db/models/ToDo.model");
+
+const port = process.env.PORT || '3000';
+
+//const app = express();
+const fastify = Fastify({logger:true});
+
+//fastify.register(fastifyCors, {
+//
+//});
+
+//fastify.register(require('fastify-cors'));
+//fastify.register(require('fastify-helmet'));
+//fastify.register(require('fastify-compress'));
+
+//app.use(cors());
+//app.use(express.urlencoded({ extended: true }));
+//app.use(express.json());
+
+// fastify.use((req, res, next) => {
+//   console.log("URL = " + req.url);
+//   console.log("Original_URL = ", req.originalUrl);
+//   console.log("METHOD = ", req.method);
+//   console.log("HOST = ", req.headers.host);
+//   console.log("IsSecure = ", req.secure);
+//   console.log("BODY", req.body);
+//   console.log("QUERY", req.query);
+
+//   next();
+// });
+
+fastify.get("/test", (req, res) => {
+  return "KKKKKK" //res.status(200).json({ message: "KKKKKK" });
+});
+
+
+const start = async () => {
+  try {
+    await fastify.listen(port);
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+}
+start();
+//http.createServer(fastify).listen(3000, () => {
+//  console.log("Server is working on port 3000");
+//});
+
+fastify.all("/sum", (req, res) => {
+  console.log("a: ", req.body.a);
+  console.log("b: ", req.body.b);
+  const result = req.body.a + req.body.b;
+  console.log(res);
+
+  res.json({
+    result,
+  });
+});
+
+fastify.all("/reverseCase", (req, res) => {
+  console.log("String: ", req.body.Str);
+  const test = req.body.Str;
+  let ind;
+  let result = "";
+  for (ind = 0; ind < test.length; ind++) {
+    if (test[ind] === test[ind].toUpperCase()) {
+      console.log("1");
+      console.log(test[ind]);
+      result = result + test[ind].toLowerCase();
+    } else if (test[ind] === test[ind].toLowerCase()) {
+      console.log("0");
+      result = result + test[ind].toUpperCase();
+      console.log(test[ind]);
+    }
+  }
+  console.log(result);
+
+  res.json({
+    result,
+  });
+});
+
+fastify.all("/reverseArray", (req, res) => {
+  console.log("String: ", req.body.Arr);
+  let result;
+  result = req.body.Arr.reverse();
+  console.log(result);
+
+  res.json({
+    result,
+  });
+});
+
+initDB();
+
+ToDo.create({});
+
+fastify.post("/items", async (req, res) => {
+  const todo = await ToDo.create({
+    id: req.body.id,
+    title: req.body.title,
+  });
+  res.json(todo);
+});
+
+fastify.get("/items", async (_, res) => {
+  try {
+    const todoList = await ToDo.findAll(); //SELECT * FROM "ToDos"
+    return todoList;//res.json({ todoList });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+fastify.get("/items/:id", async (req, res) => {
+  try {
+    const todo = await ToDo.findByPk(req.params.id);
+    if (todo === null) {
+      res.status(404).json({
+        message: "not found",
+      });
+    } else {
+      res.json(todo);
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+fastify.patch("/items/:id", async (req, res) => {
+  try {
+    const todo = await ToDo.findByPk(req.params.id);
+    if (todo === null) {
+      res.status(404).json({
+        message: "not found",
+      });
+    } else {
+      await ToDo.update(
+        {
+          title: req.body.title,
+          description:req.body.description
+        },
+        {
+          where: {
+            id: req.params.id,
+          },
+        }
+      );
+      res.json({ todo });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+fastify.delete("/items", async (req, res) => {
+  try {
+    await ToDo.destroy({ where: {} });
+    res.json({ message: "ok" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+fastify.delete("/items/:id", async (req, res) => {
+  try {
+    const todo = await ToDo.findByPk(req.params.id);
+    if (todo === null) {
+      res.status(404).json({
+        message: "not found",
+      });
+    } else {
+      await ToDo.destroy({
+        where: {
+          id: req.params.id,
+        },
+      });
+    }
+    res.json(todo);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+// app.get("/items/id", async (req,res) => {
+//   try {
+//     const todo = await ToDo.findAll({where:{id:req.body.id}})
+//     res.json({todo})
+//   } catch(error){
+//     res.status(500).json({error:error.message})
+//   }
+// })
+
+// app.get("/items/:id", async (req,res) => {
+//     try {
+//       const todo = await ToDo.find()
+//       res.json({todo})
+//     } catch(error){
+//       res.status(500).json({error:error.message})
+//     }
+//   })
+/* 15.10
+  prettier - shift-alf-F
+  orm - что это  
+  async await
+  promise
+  POST - create
+  GET - read
+  GET + :id - read by id
+  PATCH + :id - update
+  DELETE + :id - delete by id
+  user script insomnia - auto get
+*/
+
+//const a=Number(req.query.a)
+// res.status(200).json({
+//   message:'Ok', a, b,
+// })
+// let test = "HellO"
+// var ind
+// for(ind = 0; ind<test.length; ++ind) {
+//   console.log(test[i])
+// }
+
+// var test = "hElLOo";
+// var ind;
+// var result = "";
+// for(ind = 0; ind<test.length; ind++) {
+//   if (test[ind] === test[ind].toUpperCase()) {
+//     console.log('1');
+//     console.log(test[ind]);
+//     result=result + test[ind].toLowerCase();
+//   }
+//   else if (test[ind] === test[ind].toLowerCase()) {
+//     console.log('0');
+//     result = result + test[ind].toUpperCase();
+//     console.log(test[ind]);
+//   }
+// }
+// console.log(result)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+index db
+
+const { Sequelize } = require("sequelize");
+
+//Создваем instance Sequelize
+const sequelizeInstance = new Sequelize({
+     dialect: "postgres", 
+     host: "localhost", //21.23.35.4
+     port: "5432", //6000
+     database: "postgres", //js-todo
+     username: "postgres",
+     password: "1q2w3e4r5t", //qwerty10
+
+  //dialect: "sqlite",
+  //storage: "./sqliteData/database.sqlite", //Путь до файла с данными
+});
+
+const initDB = async () => {
+  try {
+    await sequelizeInstance.authenticate(); //Авторизация нашей ORM в БД
+    // await sequelize.dropSchema('public', {});
+    // await sequelize.createSchema('public', {});
+    await sequelizeInstance.sync(); //Синхронизация МОДЕЛЕЙ
+    console.log("Sequelize was initialized");
+  } catch (error) {
+    console.log("Sequelize ERROR (initDB)", error);
+    process.exit();
+  }
+};
+
+module.exports = {
+  sequelizeInstance,
+  initDB,
+};
